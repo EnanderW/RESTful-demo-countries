@@ -2,7 +2,7 @@ package com.example.makerest;
 
 import lombok.Getter;
 import lombok.Setter;
-//update
+
 @Getter
 @Setter
 public class City {

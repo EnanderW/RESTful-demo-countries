@@ -5,90 +5,58 @@ import lombok.Setter;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
 public class CityController {
 
-    private Map<String, City> cities = new HashMap<>();
-
-    private City selected;
+    private CityService service = CityService.INSTANCE;
 
     @PutMapping("/city/create")
     public CityPayload createCity(@RequestBody City city) {
-        save(city);
-
+        city = service.saveCity(city);
         return new CityPayload(city.getName(), city.getPopulation(), city.getSize());
     }
 
     @GetMapping("/city/all")
     public List<CityPayload> getAllCities() {
-        return cities.values()
+        return service.getCities()
                 .stream()
                 .map(city -> new CityPayload(city.getName(), city.getPopulation(), city.getSize()))
                 .collect(Collectors.toList());
     }
 
-    @PostMapping("/city/select/{cityName}")
-    public String selectCity(@PathVariable("cityName") String cityName, HttpServletResponse response) {
-        selected = getCity(cityName);
-        if (selected == null) {
+    @DeleteMapping("/city/delete/{cityName}")
+    public String deleteCity(@PathVariable("cityName") String cityName, HttpServletResponse response) {
+        if (!service.deleteCity(cityName)) {
             response.setStatus(404);
             return "There is no city named '" + cityName + "'";
         }
 
-        return "Selected city '" + cityName + "'";
+        return "You have deleted '" + cityName + "'";
     }
 
-    @DeleteMapping("/city/delete")
-    public String deleteCity(HttpServletResponse response) {
-        if (selected == null) {
-            response.setStatus(404);
-            return "You have not selected a city.";
-        }
-
-        remove(selected);
-        String name = selected.getName();
-        selected = null;
-        return "You have deleted '" + name + "'";
-    }
-
-    @GetMapping("/city/info")
-    public CityPayload getInfo(HttpServletResponse response) {
-        if (selected == null) {
+    @GetMapping("/city/info/{cityName}")
+    public CityPayload getInfo(@PathVariable("cityName") String cityName, HttpServletResponse response) {
+        City city = service.getCity(cityName);
+        if (city == null) {
             response.setStatus(404);
             return null;
         }
 
-        return new CityPayload(selected.getName(), selected.getPopulation(), selected.getSize());
+        return new CityPayload(city.getName(), city.getPopulation(), city.getSize());
     }
 
-    @PutMapping("/city/update")
-    public CityPayload updateCity(@RequestBody CityUpdate cityUpdate, HttpServletResponse response) {
-        if (selected == null) {
+    @PutMapping("/city/update/{cityName}")
+    public CityPayload updateCity(@PathVariable("cityName") String cityName, @RequestBody CityUpdate cityUpdate, HttpServletResponse response) {
+        if (!service.updateCity(cityName, cityUpdate)) {
             response.setStatus(404);
             return null;
         }
 
-        selected.setPopulation(cityUpdate.getPopulation());
-        selected.setSize(cityUpdate.getSize());
-        return new CityPayload(selected.getName(), selected.getPopulation(), selected.getSize());
-    }
-
-    public void save(City city) {
-        cities.put(city.getName().toLowerCase(), city);
-    }
-
-    public City getCity(String name) {
-        return cities.get(name.toLowerCase());
-    }
-
-    public void remove(City city) {
-        cities.remove(city.getName().toLowerCase());
+        City city = service.getCity(cityName);
+        return new CityPayload(city.getName(), city.getPopulation(), city.getSize());
     }
 
     @Getter
